@@ -1,15 +1,30 @@
-# 
+#
+# redsocks Dockerfile
+#
+# https://github.com/wtsi-hgi/redsocks
+FROM ubuntu:18.04 AS redsocks
+
+# Install prerequisites
+RUN \
+  apt-get update && \
+  apt-get -y upgrade && \
+  apt-get install -y iptables make gcc libevent-dev
+
+# Install redsocks source from git tree
+ADD ./redsocks /usr/src/redsocks
+WORKDIR /usr/src/redsocks
+
+# Compile redsocks and install it in /usr/local/sbin
+RUN make && cp redsocks /usr/local/sbin/redsocks
+
+#
 # Docker-proxify Dockerfile
 #
 # https://github.com/wtsi-hgi/docker-proxify
-
-FROM jrandall/redsocks
-MAINTAINER "Joshua C. Randall" <jcrandall@alum.mit.edu>
+FROM redsocks
 
 # Install docker-within-docker requirements
-RUN apt-get update && apt-get install -qqy ca-certificates lxc aufs-tools git 
-ADD https://get.docker.io/builds/Linux/x86_64/docker-latest /usr/local/bin/docker
-RUN chmod +x /usr/local/bin/docker
+RUN apt-get update && apt-get install -qqy ca-certificates lxc aufs-tools git docker
 VOLUME /var/lib/docker
 
 # Install docker-proxify
