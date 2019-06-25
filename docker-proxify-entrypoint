@@ -18,7 +18,7 @@ fi
 docker-in-docker-setup
 
 # start docker daemon
-nohup docker -d > /var/log/docker.out 2> /var/log/docker.err &
+nohup dockerd > /var/log/docker.out 2> /var/log/docker.err &
 dockerpid=$!
 
 # wait for docker.err to log 'acceptconnections() = OK'
@@ -31,7 +31,7 @@ do
 
     echo -n "."
     sleep 0.05 || sleep 1
-    docker_ready=$(grep 'acceptconnections.*=.*OK' /var/log/docker.err)
+    docker_ready=$(grep 'API listen on /var/run/docker.sock' /var/log/docker.err)
 done
 echo " docker ready."
 

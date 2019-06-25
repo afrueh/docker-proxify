@@ -2,22 +2,22 @@
 #################################################################################
 #
 # Copyright (c) 2014 Genome Research Ltd.
-# 
+#
 # Author: Joshua C. Randall <jcrandall@alum.mit.edu>
-# 
+#
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation; either version 3 of the License, or (at your option) any later
 # version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
 # details.
-# 
+#
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 #################################################################################
 
 use strict;
@@ -49,7 +49,7 @@ my $socks5_proxy_url = "";
 
 my $port_spec = "80:HTTP,443:CONNECT";
 
-# rs_log is passed along to redsocks and can be one of: 
+# rs_log is passed along to redsocks and can be one of:
 #   stderr
 #   "file:/path/to/file"
 #   syslog:FACILITY  facility is any of "daemon", "local0"..."local7"
@@ -59,7 +59,7 @@ my $man = 0;
 my $help = 0;
 my $verbose = 0;
 
-my $result = GetOptions( 
+my $result = GetOptions(
     "http_proxy:s" => \$http_proxy_url,
     "connect_proxy|https_proxy:s" => \$connect_proxy_url,
     "socks4_proxy:s" => \$socks4_proxy_url,
@@ -76,7 +76,7 @@ pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 =head1 NAME
 
-docker-proxify - a wrapper for redsocks and iptables to setup one docker 
+docker-proxify - a wrapper for redsocks and iptables to setup one docker
                  container to act as a transparent proxy for another.
 
 =head1 SYNOPSIS
@@ -108,23 +108,23 @@ Prints the manual page and exits.
 
 =item B<--port_spec>
 
-A string containing a comma-delimited list of port:proxy_type mappings, 
-where port is the integer port number to be forwarded via the proxy 
-and proxy_type is the type of proxy on which to forward it (one of 
-"HTTP", "CONNECT", "SOCKS4", or "SOCKS5"). 
+A string containing a comma-delimited list of port:proxy_type mappings,
+where port is the integer port number to be forwarded via the proxy
+and proxy_type is the type of proxy on which to forward it (one of
+"HTTP", "CONNECT", "SOCKS4", or "SOCKS5").
 
 =back
 
 =head1 DESCRIPTION
 
-This program sets up configuration for redsocks, launches redsocks, and 
-configures iptables rules so that any connections passed into this 
+This program sets up configuration for redsocks, launches redsocks, and
+configures iptables rules so that any connections passed into this
 container will be routed to the specified proxy server. Only TCP is
-supported at the moment. 
+supported at the moment.
 
 =cut
 
-if ( ($http_proxy_url eq "") && ($connect_proxy_url eq "") && 
+if ( ($http_proxy_url eq "") && ($connect_proxy_url eq "") &&
      ($socks4_proxy_url eq "") && ($socks5_proxy_url eq "") ) {
     pod2usage("Nothing to do, no proxies specified\n");
 }
@@ -208,11 +208,11 @@ sub configure_iptables_nat_chain {
     my $chain_type = shift;
     my $redsocks_port = shift;
     my $skip_address_specs = shift;
-    
+
     my $out;
     $out = `${IPTABLES_BIN} -t nat -N REDSOCKS_${chain_type} 2>&1`;
     die "Could not create chain for REDSOCKS_${chain_type}\n".$out unless ($? == 0);
-    
+
     foreach my $skip_address_spec (@{$skip_address_specs}) {
 	$out = `${IPTABLES_BIN} -t nat -A REDSOCKS_${chain_type} -d ${skip_address_spec} -j RETURN 2>&1`;
 	die "Could not add address spec skip rule for ${skip_address_spec}\n".$out unless ($? == 0);
@@ -224,11 +224,11 @@ sub configure_iptables_nat_chain {
 
 sub delete_iptables_nat_chain {
     my $chain_type = shift;
-    
-    my $out = `${IPTABLES_BIN} -t nat -F REDSOCKS_${chain_type} 2>&1`;	    
+
+    my $out = `${IPTABLES_BIN} -t nat -F REDSOCKS_${chain_type} 2>&1`;
     die "Could not flush chain for REDSOCKS_${chain_type}\n".$out unless ($? == 0);
 
-    $out = `${IPTABLES_BIN} -t nat -X REDSOCKS_${chain_type} 2>&1`;	    
+    $out = `${IPTABLES_BIN} -t nat -X REDSOCKS_${chain_type} 2>&1`;
     die "Could not delete chain for REDSOCKS_${chain_type}\n".$out unless ($? == 0);
 }
 
@@ -254,7 +254,7 @@ sub configure_iptables_dest_port {
     my $proxy_type = shift;
     my $chain = shift; # only PREROUTING or OUTPUT can be used with -i
     my $interface = shift || "";
-    
+
     my $iptables_cmd = "${IPTABLES_BIN} -t nat -A $chain";
     if($interface ne "") {
 	$iptables_cmd .= " -i $interface";
@@ -283,17 +283,17 @@ sub delete_iptables_dest_port {
 print "setting up port forwarding according to port_spec: $port_spec\n" if($verbose > 0);
 foreach my $port_proxy_type (split /,/, $port_spec) {
     my ($port, $proxy_type) = split /:/, $port_proxy_type;
-    
+
     die "invalid port_spec $port_spec: $port is not a valid port\n" unless ($port =~ m/^[0-9]+$/);
     die "invalid port_spec $port_spec: $proxy_type is not a valid proxy_type\n" unless ($proxy_type =~ m/^(HTTP|CONNECT|SOCKS4|SOCKS5)$/);
-    
+
     print "configuring $port to forward via $proxy_type\n" if($verbose > 0);
     configure_iptables_dest_port("0.0.0.0/0", $port, $proxy_type, "OUTPUT");
     configure_iptables_dest_port("0.0.0.0/0", $port, $proxy_type, "PREROUTING", "docker0");
 }
 
 # fork and run redsocks until interrupt
-# this code adapted from "safe pipe open for reading" 
+# this code adapted from "safe pipe open for reading"
 # described in: http://perldoc.perl.org/perlipc.html#Safe-Pipe-Opens
 my $child_stdout_fh;
 my $pid = open($child_stdout_fh, "-|");
@@ -305,44 +305,44 @@ if (!$pid) { # $pid is only set in parent
     # call exec and never return (exec_lfs will exit on error)
     exec { $RS_BIN } $RS_BIN, ("-c", $RS_TMP_CONFIG_FILE) or die "Could not exec $RS_BIN\n";
     #`${RS_BIN} -c ${RS_TMP_CONFIG_FILE} 2>&1`;
-    
+
     # as a safety precaution, force child to exit (this should never be reached)
     die "child process attempted to continue unexpectedly after exec\n";
-} else { 
+} else {
     # parent, process data from child
     sub cleanup {
 	foreach my $port_proxy_type (split /,/, $port_spec) {
 	    my ($port, $proxy_type) = split /:/, $port_proxy_type;
-	    
+
 	    die "invalid port_spec $port_spec: $port is not a valid port\n" unless ($port =~ m/^[0-9]+$/);
 	    die "invalid port_spec $port_spec: $proxy_type is not a valid proxy_type\n" unless ($proxy_type =~ m/^(HTTP|CONNECT|SOCKS4|SOCKS5)$/);
-	    
+
 	    print "removing forwarding of $port via $proxy_type\n" if($verbose > 0);
 	    delete_iptables_dest_port("0.0.0.0/0", $port, $proxy_type, "OUTPUT");
 	    delete_iptables_dest_port("0.0.0.0/0", $port, $proxy_type, "PREROUTING", "docker0");
 	}
-	
+
 	if($connect_section ne "") {
 	    delete_iptables_nat_chain("CONNECT");
 	}
-	
+
 	if($http_section ne "") {
 	    delete_iptables_nat_chain("HTTP");
 	}
-	
+
 	if($socks4_section ne "") {
 	    delete_iptables_nat_chain("SOCKS4");
 	}
-	
+
 	if($socks5_section ne "") {
 	    delete_iptables_nat_chain("SOCKS5");
 	}
-	
+
 	print "docker-proxify: cleaned up iptables after interrupt.\n";
-	
+
 	# send signal to kill redsocks in child
 	kill 'TERM', $pid or die "could not terminate redsocks\n";
-	
+
 	# continuing, will exit after flusing output from child
     }
 
@@ -351,6 +351,6 @@ if (!$pid) { # $pid is only set in parent
 	chomp $outline;
 	print "redsocks: $outline\n";
     }
-    
+
     die "docker-proxify: redsocks terminated.\n";
 }
