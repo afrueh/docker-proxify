@@ -3,6 +3,28 @@
 PROXY_SERVER=127.0.0.1
 PROXY_PORT=8000
 
+# setup docker daemon
+docker-in-docker-setup
+
+# start docker daemon
+nohup dockerd > /var/log/docker.out 2> /var/log/docker.err &
+dockerpid=$!
+
+# wait for docker.err to log 'acceptconnections() = OK'
+docker_ready=""
+echo -n "Waiting for docker daemon to be ready."
+while test -z "${docker_ready}"
+do
+    # docker hasn't reported that it is ready yet, check if it has exited
+    grep -q exit /var/log/docker.err && echo " docker daemon has exited!" && echo "docker log:" && cat /var/log/docker.err && exit 1
+
+    echo -n "."
+    sleep 0.05 || sleep 1
+    docker_ready=$(grep 'API listen on /var/run/docker.sock' /var/log/docker.err)
+done
+echo " docker ready."
+
+# setup proxy redirection
 echo "Configuration:"
 echo "PROXY_SERVER=$PROXY_SERVER"
 echo "PROXY_PORT=$PROXY_PORT"
@@ -13,33 +35,8 @@ sed -i "s/vPROXY-PORT/$PROXY_PORT/g" /etc/redsocks.conf
 
 echo "Restarting redsocks and redirecting traffic via iptables"
 /etc/init.d/redsocks restart
-iptables -t nat -A OUTPUT -p tcp --dport 80 -j REDIRECT --to-port 12345
-
-# # setup redsocks and iptables rules
-# docker-proxify-daemon --http_proxy=${http_proxy} --https_proxy=${https_proxy} \
-#                       --socks4_proxy=${socks4_proxy} --socks5_proxy=${socks5_proxy} \
-#                       $(test -n "${port_spec}" && echo "--port_spec=${port_spec}")
-
-# # setup docker daemon
-# docker-in-docker-setup
-
-# # start docker daemon
-# nohup dockerd > /var/log/docker.out 2> /var/log/docker.err &
-# dockerpid=$!
-
-# # wait for docker.err to log 'acceptconnections() = OK'
-# docker_ready=""
-# echo -n "Waiting for docker daemon to be ready."
-# while test -z "${docker_ready}"
-# do
-#     # docker hasn't reported that it is ready yet, check if it has exited
-#     grep -q exit /var/log/docker.err && echo " docker daemon has exited!" && echo "docker log:" && cat /var/log/docker.err && exit 1
-
-#     echo -n "."
-#     sleep 0.05 || sleep 1
-#     docker_ready=$(grep 'API listen on /var/run/docker.sock' /var/log/docker.err)
-# done
-# echo " docker ready."
+iptables -w -t nat -A OUTPUT -p tcp --dport 80 -j REDIRECT --to-port 12345
+iptables -w -t nat -A OUTPUT -p tcp --dport 443 -j REDIRECT --to-port 12345
 
 # launch requested command
 sh -c "$*"
