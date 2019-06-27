@@ -259,7 +259,7 @@ sub configure_iptables_dest_port {
     if($interface ne "") {
 	$iptables_cmd .= " -i $interface";
     }
-    $iptables_cmd .= " -p tcp -d ${dest_addr_spec} --dport ${dest_port} -j REDSOCKS_${proxy_type}";
+    $iptables_cmd .= " -p tcp -d ${dest_addr_spec} --dport ${dest_port} -m owner --gid-owner socksified -j REDSOCKS_${proxy_type}";
     my $out = `${iptables_cmd} 2>&1`;
     die "Could not setup proxy chain rule for ${dest_addr_spec}:${dest_port} to ${proxy_type}\n" unless ($? == 0);
 }
@@ -275,7 +275,7 @@ sub delete_iptables_dest_port {
     if($interface ne "") {
 	$iptables_cmd .= " -i $interface";
     }
-    $iptables_cmd .= " -p tcp -d ${dest_addr_spec} --dport ${dest_port} -j REDSOCKS_${proxy_type}";
+    $iptables_cmd .= " -p tcp -d ${dest_addr_spec} --dport ${dest_port} -m owner --gid-owner socksified -j REDSOCKS_${proxy_type}";
     my $out = `${iptables_cmd} 2>&1`;
     die "Could not delete proxy chain rule for ${dest_addr_spec}:${dest_port} to ${proxy_type}\n" unless ($? == 0);
 }

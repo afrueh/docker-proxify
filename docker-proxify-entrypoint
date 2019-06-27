@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# create proxied group
+groupadd socksified
+
 # setup redsocks and iptables rules
 docker-proxify-daemon --http_proxy=${http_proxy} --https_proxy=${https_proxy} \
                       --socks4_proxy=${socks4_proxy} --socks5_proxy=${socks5_proxy} \
