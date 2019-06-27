@@ -1,21 +1,21 @@
-FROM ubuntu:18.04 AS redsocks
+FROM debian:latest
 
-# Install prerequisites
-RUN \
-  apt-get update && \
-  apt-get -y upgrade && \
-  apt-get install -y iptables
+# Install proxy prerequisites
+RUN apt-get update && apt-get -qy upgrade
+RUN apt-get install -qy \
+  iptables \
+  redsocks
 
 # Install docker-within-docker requirements
 RUN apt-get install -qqy \
       apt-transport-https \
       ca-certificates \
       curl \
-      gnupg-agent \
+      gnupg2 \
       software-properties-common
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 RUN add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   "deb [arch=amd64] https://download.docker.com/linux/debian \
    $(lsb_release -cs) \
    stable"
 RUN apt-get update \
@@ -23,13 +23,10 @@ RUN apt-get update \
 VOLUME /var/lib/docker
 
 # Install docker-proxify
-ADD ./docker-proxify /usr/local/bin/docker-proxify
-ADD ./docker-proxify-daemon /usr/local/bin/docker-proxify-daemon
-ADD ./docker-in-docker-setup /usr/local/bin/docker-in-docker-setup
-ADD ./docker-proxify-entrypoint /usr/local/bin/docker-proxify-entrypoint
-RUN chmod +x /usr/local/bin/docker-*
+WORKDIR /proxy
+ADD ./redsocks.conf /etc/redsocks.conf
+ADD ./docker-proxify-entrypoint /proxy/docker-proxify-entrypoint
 
-RUN mkdir /docker
-WORKDIR /docker
+# WORKDIR /app
 CMD ["bash"]
-ENTRYPOINT ["/usr/local/bin/docker-proxify-entrypoint"]
+ENTRYPOINT ["/proxy/docker-proxify-entrypoint"]
