@@ -10,7 +10,7 @@ docker-in-docker-setup
 nohup dockerd > /var/log/docker.out 2> /var/log/docker.err &
 dockerpid=$!
 
-# wait for docker.err to log 'acceptconnections() = OK'
+# wait for docker to start
 docker_ready=""
 echo -n "Waiting for docker daemon to be ready."
 while test -z "${docker_ready}"
@@ -29,15 +29,14 @@ echo "Configuration:"
 echo "PROXY_SERVER=$PROXY_SERVER"
 echo "PROXY_PORT=$PROXY_PORT"
 
-echo "Setting config variables"
 sed -i "s/vPROXY-SERVER/$PROXY_SERVER/g" /etc/redsocks.conf
 sed -i "s/vPROXY-PORT/$PROXY_PORT/g" /etc/redsocks.conf
 
-echo "Restarting redsocks and redirecting traffic via iptables"
-/etc/init.d/redsocks restart
-
 # setup iptables redirection routes
 /proxy/docker-redsocks start
+
+echo "Restarting redsocks and redirecting traffic via iptables"
+/etc/init.d/redsocks restart
 
 # launch requested command
 sh -c "$*"

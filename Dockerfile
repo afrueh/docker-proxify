@@ -26,8 +26,8 @@ VOLUME /var/lib/docker
 WORKDIR /proxy
 ADD ./redsocks.conf /etc/redsocks.conf
 ADD ./docker-redsocks /proxy/docker-redsocks
-ADD ./docker-proxify-entrypoint /proxy/docker-proxify-entrypoint
+ADD ./entrypoint /proxy/entrypoint
 
 # WORKDIR /app
 CMD ["bash"]
-ENTRYPOINT ["/proxy/docker-proxify-entrypoint"]
+ENTRYPOINT ["/proxy/entrypoint"]
