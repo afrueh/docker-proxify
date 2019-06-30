@@ -25,6 +25,7 @@ VOLUME /var/lib/docker
 # Install docker-proxify
 WORKDIR /proxy
 ADD ./redsocks.conf /etc/redsocks.conf
+ADD ./docker-redsocks /proxy/docker-redsocks
 ADD ./docker-proxify-entrypoint /proxy/docker-proxify-entrypoint
 
 # WORKDIR /app
