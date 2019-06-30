@@ -23,11 +23,14 @@ RUN apt-get update \
 VOLUME /var/lib/docker
 
 # Install docker-proxify
-WORKDIR /proxy
+ADD ./docker-in-docker-setup /proxy/docker-in-docker-setup
+
 ADD ./redsocks.conf /etc/redsocks.conf
+
 ADD ./docker-redsocks /proxy/docker-redsocks
+ADD ./whitelist.txt /proxy/whitelist.txt
 ADD ./entrypoint /proxy/entrypoint
 
-# WORKDIR /app
+WORKDIR /app
 CMD ["bash"]
 ENTRYPOINT ["/proxy/entrypoint"]

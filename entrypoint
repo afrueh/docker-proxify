@@ -4,7 +4,7 @@ PROXY_SERVER=127.0.0.1
 PROXY_PORT=8000
 
 # setup docker daemon
-docker-in-docker-setup
+/proxy/docker-in-docker-setup
 
 # start docker daemon
 nohup dockerd > /var/log/docker.out 2> /var/log/docker.err &
